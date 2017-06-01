@@ -1,6 +1,10 @@
 from pathlib import Path
 import pickle
 from bs4 import BeautifulSoup as bs
+from nltk.stem.snowball import SnowballStemmer
+from scipy import sparse
+import numpy as np
+import codecs
 
 class ClassificationObject:
     def __init__(self, content, label):
@@ -30,6 +34,53 @@ class Preprocessing:
         for doc in self.classification_objects:
             doc.token_list = ''.join([c if c.isalnum() and not c.isnumeric() else ' ' for c in doc.content]).lower().split()
 
+    # returns a string representation of the text file located at the specified path
+    def read_txt(self, path):
+        file = codecs.open(path, 'r', 'utf-8')
+        return file.read()
+
+    def save_sparse_representation(self, data):
+        sparse_data = sparse.csr_matrix(data)
+        print(sparse_data)
+
+    # extracts words (have to be separated by white spaces) from a string and returns a sorted
+    # list of the contained words and their frequency
+    def extract_words(self, text):
+        word_list = ''.join(map(lambda c: c if c.isalnum() and not c.isnumeric() else ' ', text)).lower().split()
+        dict = {}
+
+        for word in word_list:
+            if word in dict:
+                dict[word] = dict[word] + 1
+            else:
+                dict[word] = 1
+        word_list = sorted(dict.items(), key = lambda item: item[1], reverse=True)
+        return word_list
+
+    # removes redundant stopwords from a list of extracted words
+    def remove_stopwords(self, word_list, stopwords):
+        stopwords = map(lambda x: x[0], stopwords)
+        word_list = list(filter(lambda x: x[0] not in stopwords , word_list))
+        return word_list
+
+    def steam_words(self, word_list, language):
+        stemmer = SnowballStemmer(language)
+        return list(map(lambda word: stemmer.stem(word), word_list))
+
+    def compute_tf_idf(self, word_list):
+        word_frequencies = {}
+
+        for word in word_list:
+            if word in word_frequencies:
+                word_frequencies[word] += 1
+            else:
+                word_frequencies[word] = 1
+
+        word_frequencies = sorted(word_frequencies.items(), key=lambda item: item[1], reverse=True)
+        N = len(word_frequencies)
+        tf_idf = list(map(lambda item: item[1]/N * np.log(N/item[1]), word_frequencies))
+
+        return tf_idf
 
     def __read_docs_from_path(self, path):
         p = Path(path)
@@ -58,5 +109,16 @@ prep.load_files("course-cotrain-data/fulltext")
 prep.remove_script_tags()
 prep.extract_token_list()
 prep.safe_to_disk("pre-processed-data.pickle")
+
+word_list = ["the", "hey", "hello", "hello"]
+print("Length of the word list with stopwords: " + str(len(word_list)))
+stopwords = prep.extract_words(prep.read_txt("stopwords/english"))
+word_list = prep.remove_stopwords(word_list, stopwords)
+print("Length of the word list without stopwords: " + str(len(word_list)))
+word_list = prep.steam_words(word_list, "english")
+print("Length of the word list after stemming: " + str(len(word_list)))
+tf_idf = prep.compute_tf_idf(word_list)
+print(prep.save_sparse_representation(tf_idf))
+print(tf_idf)
 
 #prep = loadFromDisk("pre-processed-data.pickle")
