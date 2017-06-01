@@ -123,7 +123,7 @@ class Preprocessing:
 
 def loadFromDisk(path):
     return pickle.load( open( path, "rb" ) )
-
+'''
 prep = Preprocessing()
 prep.load_files("course-cotrain-data/fulltext")
 prep.remove_script_tags()
@@ -136,11 +136,7 @@ prep.compute_tf_idf()
 prep.compute_top_n_reoccuring_terms(10)
 prep.make_sparse()
 prep.safe_to_disk("pre-processed-data.pickle")
-
+'''
 
 #prep = loadFromDisk("pre-processed-data.pickle")
-#print(prep.classification_objects[0].terms)
-#features = prep.select_features(10)
-#print(features)
-#prep.make_sparse(features)
 #print(prep.sparse_data.toarray())
