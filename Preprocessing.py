@@ -19,7 +19,7 @@ class Preprocessing:
         self.raw_by_labels = {}
         self.stopwords = set()
         self.global_terms = {}
-        #self.sparse_data = sparse.csr_matrix()
+        self.sparse_data = []
 
     def load_files(self, directory):
         p = Path(directory)
@@ -80,8 +80,24 @@ class Preprocessing:
                 doc.terms[term] = [doc.terms[term], idf, doc.terms[term] * idf]
             self.global_terms[term] = [idf, docs]
 
-    def save_sparse_representation(self):
-        self.sparse_data = sparse.csr_matrix()
+    def make_sparse(self, selected_features):
+        for doc in self.classification_objects:
+            feature_vector = []
+            for feature in selected_features:
+                if not feature in doc.terms:
+                    feature_vector.append(0.0)
+                else:
+                    feature_vector.append(doc.terms[feature][2])
+
+            self.sparse_data.extend([feature_vector])
+
+        self.sparse_data = sparse.csr_matrix(self.sparse_data)
+
+    def select_features(self, n):
+        sorted_words = sorted(self.global_terms.items(), key=lambda item: item[1].__len__(), reverse=True)
+        #print([[x[0], x[1].__len__()] for x in sorted_words])
+        selected_features = list(map(lambda item: item[0], sorted_words))
+        return selected_features[0:n]
 
     def __read_docs_from_path(self, path):
         p = Path(path)
@@ -104,7 +120,6 @@ class Preprocessing:
 
 def loadFromDisk(path):
     return pickle.load( open( path, "rb" ) )
-
 '''
 prep = Preprocessing()
 prep.load_files("course-cotrain-data/fulltext")
@@ -119,4 +134,8 @@ prep.safe_to_disk("pre-processed-data.pickle")
 '''
 
 prep = loadFromDisk("pre-processed-data.pickle")
-print(prep.classification_objects[0].terms)
+#print(prep.classification_objects[0].terms)
+features = prep.select_features(10)
+#print(features)
+prep.make_sparse(features)
+#print(prep.sparse_data.toarray())
