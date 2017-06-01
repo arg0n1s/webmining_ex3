@@ -19,6 +19,7 @@ class Preprocessing:
         self.raw_by_labels = {}
         self.stopwords = set()
         self.global_terms = {}
+        self.top_n_reoccuring_terms = ()
         self.sparse_data = []
 
     def load_files(self, directory):
@@ -78,26 +79,28 @@ class Preprocessing:
             idf = np.log(self.classification_objects.__len__() / docs.__len__())
             for doc in docs:
                 doc.terms[term] = [doc.terms[term], idf, doc.terms[term] * idf]
-            self.global_terms[term] = [idf, docs]
+            self.global_terms[term] = [idf, docs.__len__(), docs]
+            #print("TERM: ",term," // IDF: ",self.global_terms[term][0]," // RANK: ",self.global_terms[term][1].__len__())
 
-    def make_sparse(self, selected_features):
+    def compute_top_n_reoccuring_terms(self, n):
+        sorted_words = sorted(self.global_terms.items(), key=lambda item: item[1][1], reverse=True)
+        selected_features = list(map(lambda item: [item[0], item[1][1]], sorted_words))
+        self.top_n_reoccuring_terms = selected_features[0:n]
+        #print(self.top_n_reoccuring_terms)
+
+    def make_sparse(self):
         for doc in self.classification_objects:
             feature_vector = []
-            for feature in selected_features:
-                if not feature in doc.terms:
+            for feature in self.top_n_reoccuring_terms:
+                if not feature[0] in doc.terms:
                     feature_vector.append(0.0)
                 else:
-                    feature_vector.append(doc.terms[feature][2])
+                    feature_vector.append(doc.terms[feature[0]][1])
 
             self.sparse_data.extend([feature_vector])
 
         self.sparse_data = sparse.csr_matrix(self.sparse_data)
-
-    def select_features(self, n):
-        sorted_words = sorted(self.global_terms.items(), key=lambda item: item[1].__len__(), reverse=True)
-        #print([[x[0], x[1].__len__()] for x in sorted_words])
-        selected_features = list(map(lambda item: item[0], sorted_words))
-        return selected_features[0:n]
+        print(self.sparse_data.shape)
 
     def __read_docs_from_path(self, path):
         p = Path(path)
@@ -120,7 +123,7 @@ class Preprocessing:
 
 def loadFromDisk(path):
     return pickle.load( open( path, "rb" ) )
-'''
+
 prep = Preprocessing()
 prep.load_files("course-cotrain-data/fulltext")
 prep.remove_script_tags()
@@ -130,12 +133,14 @@ prep.remove_stopwords()
 prep.stem_words("english")
 prep.compute_tf()
 prep.compute_tf_idf()
+prep.compute_top_n_reoccuring_terms(10)
+prep.make_sparse()
 prep.safe_to_disk("pre-processed-data.pickle")
-'''
 
-prep = loadFromDisk("pre-processed-data.pickle")
+
+#prep = loadFromDisk("pre-processed-data.pickle")
 #print(prep.classification_objects[0].terms)
-features = prep.select_features(10)
+#features = prep.select_features(10)
 #print(features)
-prep.make_sparse(features)
+#prep.make_sparse(features)
 #print(prep.sparse_data.toarray())
