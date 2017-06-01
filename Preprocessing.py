@@ -11,11 +11,15 @@ class ClassificationObject:
         self.content = content
         self.label = label
         self.token_list = []
+        self.terms = {}
 
 class Preprocessing:
     def __init__(self):
         self.classification_objects = []
         self.raw_by_labels = {}
+        self.stopwords = set()
+        self.global_terms = {}
+        #self.sparse_data = sparse.csr_matrix()
 
     def load_files(self, directory):
         p = Path(directory)
@@ -34,53 +38,50 @@ class Preprocessing:
         for doc in self.classification_objects:
             doc.token_list = ''.join([c if c.isalnum() and not c.isnumeric() else ' ' for c in doc.content]).lower().split()
 
-    # returns a string representation of the text file located at the specified path
-    def read_txt(self, path):
+    def load_stopwords(self, path):
         file = codecs.open(path, 'r', 'utf-8')
-        return file.read()
-
-    def save_sparse_representation(self, data):
-        sparse_data = sparse.csr_matrix(data)
-        print(sparse_data)
-
-    # extracts words (have to be separated by white spaces) from a string and returns a sorted
-    # list of the contained words and their frequency
-    def extract_words(self, text):
+        text = file.read()
         word_list = ''.join(map(lambda c: c if c.isalnum() and not c.isnumeric() else ' ', text)).lower().split()
-        dict = {}
+        self.stopwords = set(word_list)
 
-        for word in word_list:
-            if word in dict:
-                dict[word] = dict[word] + 1
-            else:
-                dict[word] = 1
-        word_list = sorted(dict.items(), key = lambda item: item[1], reverse=True)
-        return word_list
+    def remove_stopwords(self):
+        #print("Removing Stopwords..")
+        for doc in self.classification_objects:
+            #b = doc.token_list.__len__()
+            doc.token_list = list(filter(lambda x: x[0] not in self.stopwords , doc.token_list))
+            #print("Before: ",b," After: ",doc.token_list.__len__())
 
-    # removes redundant stopwords from a list of extracted words
-    def remove_stopwords(self, word_list, stopwords):
-        stopwords = map(lambda x: x[0], stopwords)
-        word_list = list(filter(lambda x: x[0] not in stopwords , word_list))
-        return word_list
-
-    def steam_words(self, word_list, language):
+    def stem_words(self, language):
         stemmer = SnowballStemmer(language)
-        return list(map(lambda word: stemmer.stem(word), word_list))
+        for doc in self.classification_objects:
+            doc.token_list = list(map(lambda word: stemmer.stem(word), doc.token_list))
 
-    def compute_tf_idf(self, word_list):
-        word_frequencies = {}
+    def compute_tf(self):
+        for doc in self.classification_objects:
+            for word in doc.token_list:
+                if word in doc.terms:
+                    doc.terms[word] += 1
+                else:
+                    doc.terms[word] = 1
 
-        for word in word_list:
-            if word in word_frequencies:
-                word_frequencies[word] += 1
-            else:
-                word_frequencies[word] = 1
+                if word in self.global_terms:
+                    self.global_terms[word]= self.global_terms[word] | set([doc])
+                else:
+                    self.global_terms[word] = set([doc])
 
-        word_frequencies = sorted(word_frequencies.items(), key=lambda item: item[1], reverse=True)
-        N = len(word_frequencies)
-        tf_idf = list(map(lambda item: item[1]/N * np.log(N/item[1]), word_frequencies))
+            for word in doc.terms:
+                doc.terms[word] /= doc.token_list.__len__()
 
-        return tf_idf
+    def compute_tf_idf(self):
+        for term in self.global_terms:
+            docs = self.global_terms[term]
+            idf = np.log(self.classification_objects.__len__() / docs.__len__())
+            for doc in docs:
+                doc.terms[term] = [doc.terms[term], idf, doc.terms[term] * idf]
+            self.global_terms[term] = [idf, docs]
+
+    def save_sparse_representation(self):
+        self.sparse_data = sparse.csr_matrix()
 
     def __read_docs_from_path(self, path):
         p = Path(path)
@@ -104,21 +105,18 @@ class Preprocessing:
 def loadFromDisk(path):
     return pickle.load( open( path, "rb" ) )
 
+'''
 prep = Preprocessing()
 prep.load_files("course-cotrain-data/fulltext")
 prep.remove_script_tags()
 prep.extract_token_list()
+prep.load_stopwords("stopwords/english")
+prep.remove_stopwords()
+prep.stem_words("english")
+prep.compute_tf()
+prep.compute_tf_idf()
 prep.safe_to_disk("pre-processed-data.pickle")
+'''
 
-word_list = ["the", "hey", "hello", "hello"]
-print("Length of the word list with stopwords: " + str(len(word_list)))
-stopwords = prep.extract_words(prep.read_txt("stopwords/english"))
-word_list = prep.remove_stopwords(word_list, stopwords)
-print("Length of the word list without stopwords: " + str(len(word_list)))
-word_list = prep.steam_words(word_list, "english")
-print("Length of the word list after stemming: " + str(len(word_list)))
-tf_idf = prep.compute_tf_idf(word_list)
-print(prep.save_sparse_representation(tf_idf))
-print(tf_idf)
-
-#prep = loadFromDisk("pre-processed-data.pickle")
+prep = loadFromDisk("pre-processed-data.pickle")
+print(prep.classification_objects[0].terms)
