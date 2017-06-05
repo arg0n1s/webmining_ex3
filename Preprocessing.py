@@ -3,6 +3,7 @@ import pickle
 from bs4 import BeautifulSoup as bs
 from nltk.stem.snowball import SnowballStemmer
 from scipy import sparse
+from random import shuffle
 import numpy as np
 import codecs
 
@@ -18,9 +19,16 @@ class Preprocessing:
         self.classification_objects = []
         self.raw_by_labels = {}
         self.stopwords = set()
-        self.global_terms = {}
-        self.top_n_reoccuring_terms = ()
-        self.sparse_data = []
+        self.global_training_terms = {}
+        self.global_testing_terms = {}
+        self.top_n_reoccuring_training_terms = ()
+        self.top_n_reoccuring_testing_terms = ()
+        self.training_set = []
+        self.test_set = []
+        self.sparse_training_data = []
+        self.sparse_testing_data = []
+        self.training_labels = []
+        self.testing_labels = []
 
     def load_files(self, directory):
         p = Path(directory)
@@ -57,50 +65,95 @@ class Preprocessing:
         for doc in self.classification_objects:
             doc.token_list = list(map(lambda word: stemmer.stem(word), doc.token_list))
 
-    def compute_tf(self):
-        for doc in self.classification_objects:
+    def build_training_and_test_sets(self):
+        if self.classification_objects.__len__() < 230:
+            print("Error: The data set has to have more than 230 elements")
+        else:
+            indices = [i for i in range(self.classification_objects.__len__())]
+            shuffle(indices)
+            if indices.__len__() < 320:
+                training_indices = indices[0:160]
+                test_indices = indices[160:]
+            else:
+                training_indices = indices[0:int(np.ceil(indices.__len__()/2))]
+                test_indices = indices[int(np.ceil(indices.__len__()/2)):]
+
+            self.training_set = [self.classification_objects[i] for i in training_indices]
+            self.test_set = [self.classification_objects[i] for i in test_indices]
+
+
+    def compute_tf(self, training):
+        if training == True:
+            dataset = self.training_set
+            global_terms = self.global_training_terms
+        else:
+            dataset = self.test_set
+            global_terms = self.global_testing_terms
+
+        for doc in dataset:
             for word in doc.token_list:
                 if word in doc.terms:
                     doc.terms[word] += 1
                 else:
                     doc.terms[word] = 1
 
-                if word in self.global_terms:
-                    self.global_terms[word]= self.global_terms[word] | set([doc])
+                if word in global_terms:
+                    global_terms[word]= global_terms[word] | set([doc])
                 else:
-                    self.global_terms[word] = set([doc])
+                    global_terms[word] = set([doc])
 
             for word in doc.terms:
                 doc.terms[word] /= doc.token_list.__len__()
 
-    def compute_tf_idf(self):
-        for term in self.global_terms:
-            docs = self.global_terms[term]
-            idf = np.log(self.classification_objects.__len__() / docs.__len__())
+    def compute_tf_idf(self, training):
+
+        if training == True:
+            dataset = self.training_set
+            global_terms = self.global_training_terms
+        else:
+            dataset = self.test_set
+            global_terms = self.global_testing_terms
+
+        for term in global_terms:
+            docs = global_terms[term]
+            idf = np.log(dataset.__len__() / docs.__len__())
             for doc in docs:
                 doc.terms[term] = [doc.terms[term], idf, doc.terms[term] * idf]
-            self.global_terms[term] = [idf, docs.__len__(), docs]
-            #print("TERM: ",term," // IDF: ",self.global_terms[term][0]," // RANK: ",self.global_terms[term][1].__len__())
+            global_terms[term] = [idf, docs.__len__(), docs]
+            #print("TERM: ",term," // IDF: ",self.global_training_terms[term][0]," // RANK: ",self.global_training_terms[term][1])
 
-    def compute_top_n_reoccuring_terms(self, n):
-        sorted_words = sorted(self.global_terms.items(), key=lambda item: item[1][1], reverse=True)
+    def compute_top_n_reoccuring_terms(self, n, training):
+        global_terms = self.global_training_terms if training == True else self.global_testing_terms
+        sorted_words = sorted(global_terms.items(), key=lambda item: item[1][1], reverse=True)
         selected_features = list(map(lambda item: [item[0], item[1][1]], sorted_words))
-        self.top_n_reoccuring_terms = selected_features[0:n]
-        #print(self.top_n_reoccuring_terms)
+        top_n_reoccuring_terms = selected_features[0:n]
 
-    def make_sparse(self):
+        if training == True:
+            self.top_n_reoccuring_training_terms = top_n_reoccuring_terms
+        else:
+            self.top_n_reoccuring_testing_terms = top_n_reoccuring_terms
+
+    def make_sparse(self, training):
+        top_n_reoccuring_terms = self.top_n_reoccuring_training_terms if training == True else self.top_n_reoccuring_testing_terms
+        sparse_data = []
+        labels = []
         for doc in self.classification_objects:
+            labels.append(doc.label)
             feature_vector = []
-            for feature in self.top_n_reoccuring_terms:
+            for feature in top_n_reoccuring_terms:
                 if not feature[0] in doc.terms:
                     feature_vector.append(0.0)
                 else:
                     feature_vector.append(doc.terms[feature[0]][1])
 
-            self.sparse_data.extend([feature_vector])
+            sparse_data.extend([feature_vector])
 
-        self.sparse_data = sparse.csr_matrix(self.sparse_data)
-        print(self.sparse_data.shape)
+        if training == True:
+            self.sparse_training_data = sparse.csr_matrix(sparse_data)
+            self.training_labels = labels
+        else:
+            self.sparse_testing_data = sparse.csr_matrix(sparse_data)
+            self.testing_labels = labels
 
     def __read_docs_from_path(self, path):
         p = Path(path)
@@ -123,20 +176,3 @@ class Preprocessing:
 
 def loadFromDisk(path):
     return pickle.load( open( path, "rb" ) )
-'''
-prep = Preprocessing()
-prep.load_files("course-cotrain-data/fulltext")
-prep.remove_script_tags()
-prep.extract_token_list()
-prep.load_stopwords("stopwords/english")
-prep.remove_stopwords()
-prep.stem_words("english")
-prep.compute_tf()
-prep.compute_tf_idf()
-prep.compute_top_n_reoccuring_terms(10)
-prep.make_sparse()
-prep.safe_to_disk("pre-processed-data.pickle")
-'''
-
-#prep = loadFromDisk("pre-processed-data.pickle")
-#print(prep.sparse_data.toarray())
