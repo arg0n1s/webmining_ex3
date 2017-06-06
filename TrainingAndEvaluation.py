@@ -1,16 +1,20 @@
 from sklearn import svm
+from sklearn.metrics import precision_recall_curve
+from sklearn.preprocessing import label_binarize
+import matplotlib.pyplot as plt
 
 
 class TrainingAndEvaluation:
     def __init__(self, preprocessed_data):
         self.prep_data = preprocessed_data
         self.classifier = svm.SVC(C=50.0, kernel='linear', probability=True)
-        self.preditions = []
+        self.predictions = []
         self.tp = 0
         self.tn = 0
         self.fp = 0
         self.fn = 0
         self.accuracy = 0
+        self.probabilities = []
         # Compute the class frequencies for the majority class classifier
         classes = {}
         for label in self.prep_data.training_labels:
@@ -48,3 +52,27 @@ class TrainingAndEvaluation:
                 self.tn += 1
 
         self.accuracy = (self.tp + self.tn) / (self.tp + self.tn + self.fn + self.fp)
+
+    def compute_probabilities(self):
+        self.probabilities = self.classifier.predict_proba(self.prep_data.sparse_testing_data)
+
+    def compute_precision_recall_curve(self):
+        binary_labels = label_binarize(self.prep_data.testing_labels, classes=['course', 'non-course'])
+        precision = dict()
+        recall = dict()
+        for i in range(2):
+            precision[i], recall[i], _ = precision_recall_curve(binary_labels, self.probabilities[:, i])
+
+        # Plot Precision-Recall curve for each class
+        plt.clf()
+        for i in range(2):
+            plt.plot(recall[i], precision[i],
+                     label='Precision-recall curve of class {0}'
+                           ''.format(i))
+        plt.xlim([0.0, 1.0])
+        plt.ylim([0.0, 1.05])
+        plt.xlabel('Recall')
+        plt.ylabel('Precision')
+        plt.title('Precision-Recall curve')
+        plt.legend(loc="lower right")
+        plt.show()

@@ -40,3 +40,5 @@ print("Accuracy with the SVM classifier: " + str(training_and_eval.accuracy) + '
 training_and_eval.testing(True)
 training_and_eval.evaluate()
 print("Accuracy with the majority-class classifier: " + str(training_and_eval.accuracy) + '\n')
+training_and_eval.compute_probabilities()
+training_and_eval.compute_precision_recall_curve()
