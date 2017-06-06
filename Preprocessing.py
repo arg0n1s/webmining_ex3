@@ -22,7 +22,7 @@ class Preprocessing:
         self.raw_by_labels = {}
         self.stopwords = set()
         self.global_training_terms = {}
-        self.top_n_reoccuring_training_terms = ()
+        self.top_n_reoccuring_training_terms = []
         self.training_set = []
         self.test_set = []
         self.sparse_training_data = []
