@@ -1,0 +1,3 @@
+['cs', 'home', 'page', 'cs', 'programming', 'cs', 'practicum', 'kenneth', 'p', 'birman', 'cs', 'news', 'group', 'course', 'lecture', 'notes', 'unix', 'filesystem', 'linking', 'homework', 'homework', 'homework', 'homework', 'homework', 'prelim', 'lili', 'upson', 'hall', 'phone', 'e', 'lili', 'cs', 'cornell', 'edu', 'hours', 'wednesday', 'friday', 'cheng', 'huang', 'upson', 'hall', 'phone', 'e', 'cs', 'cornell', 'edu', 'hours', 'budiu', 'upson', 'hall', 'phone', 'e', 'budiu', 'cs', 'cornell', 'edu', 'hours', 'wednesday', 'last', 'nov']
+ Number of Words in the word list before: 98
+ After the removal of stopwords: 60
