@@ -2,7 +2,7 @@ from sklearn import svm
 from sklearn.metrics import precision_recall_curve
 from sklearn.preprocessing import label_binarize
 import matplotlib.pyplot as plt
-
+import numpy as np
 
 class TrainingAndEvaluation:
     def __init__(self, preprocessed_data):
@@ -66,9 +66,15 @@ class TrainingAndEvaluation:
         # Plot Precision-Recall curve for each class
         plt.clf()
         for i in range(2):
-            plt.plot(recall[i], precision[i],
-                     label='Precision-recall curve of class {0}'
-                           ''.format(i))
+            classname = 'course' if i is 0 else 'non-course'
+            plt.plot(recall[i], precision[i],label='Precision-recall curve of class '+classname)
+            x_values = np.array(recall[i]);
+            y_values = np.array(precision[i])
+            idx = np.argmin(np.abs(x_values - y_values)[1:])
+            plt.scatter(x_values[idx], y_values[idx], marker='o', label='Break-even point of class '+classname+' at {:.{prec}f}'.format(precision[i][idx],prec=3))
+
+
+
         plt.xlim([0.0, 1.0])
         plt.ylim([0.0, 1.05])
         plt.xlabel('Recall')
