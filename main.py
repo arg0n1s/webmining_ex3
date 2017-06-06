@@ -1,6 +1,7 @@
 import Preprocessing as Pre
 import TrainingAndEvaluation as Tr
 import time
+import matplotlib.pyplot as plt
 
 '''
 prep = Pre.Preprocessing()
@@ -26,6 +27,7 @@ training_and_eval = Tr.TrainingAndEvaluation(prep)
 t0 = time.time()
 training_and_eval.training()
 t1 = time.time()
+print("*** Results when taking 100 features ***\n")
 print("Elapsed time during training: " + str(t1 - t0) + " seconds")
 t0 = time.time()
 training_and_eval.testing(False)
@@ -42,3 +44,6 @@ training_and_eval.evaluate()
 print("Accuracy with the majority-class classifier: " + str(training_and_eval.accuracy) + '\n')
 training_and_eval.compute_probabilities()
 training_and_eval.compute_precision_recall_curve()
+training_and_eval.sweep_number_of_features()
+training_and_eval.plot_performance_analysis()
+plt.show()
