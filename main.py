@@ -46,5 +46,7 @@ training_and_eval.compute_probabilities()
 training_and_eval.compute_precision_recall_curve()
 training_and_eval.sweep_number_of_features()
 training_and_eval.plot_performance_analysis()
+training_and_eval.sweep_c_parameter(1,150)
+training_and_eval.plot_c_parameter_sweep()
 plt.show()
 

@@ -16,9 +16,10 @@ class TrainingAndEvaluation:
         self.fp = 0
         self.fn = 0
         self.accuracy = 0
-        self.probabilities = []
-        self.accuracy_sweep_results = {}
+        self.number_features_sweep_results = {}
+        self.c_parameter_sweep_results = []
         self.n_features = []
+        self.c_parameters = []
         # Compute the class frequencies for the majority class classifier
         classes = {}
         for label in self.prep_data.training_labels:
@@ -101,11 +102,25 @@ class TrainingAndEvaluation:
             t1 = time.time()
             self.testing(False)
             self.evaluate()
-            self.accuracy_sweep_results[n] = [self.accuracy, t1 - t0]
+            self.number_features_sweep_results[n] = [self.accuracy, t1 - t0]
+
+    def sweep_c_parameter(self, start_value, end_value):
+        self.c_parameters = [start_value]
+        i = start_value
+        while i * 2 <= end_value:
+            i *= 2
+            self.c_parameters.append(i)
+
+        for c in self.c_parameters:
+            self.classifier = svm.SVC(c, kernel='linear', probability=True)
+            self.training()
+            self.testing(False)
+            self.evaluate()
+            self.c_parameter_sweep_results.append(self.accuracy)
 
     def plot_performance_analysis(self):
-        accuracy_values = list(map(lambda item: item[1][0], self.accuracy_sweep_results.items()))
-        elapsed_times = list(map(lambda item: item[1][1] * 1000.0, self.accuracy_sweep_results.items()))
+        accuracy_values = list(map(lambda item: item[1][0], self.number_features_sweep_results.items()))
+        elapsed_times = list(map(lambda item: item[1][1] * 1000.0, self.number_features_sweep_results.items()))
         plt.figure()
         plt.plot(self.n_features, accuracy_values)
         plt.scatter(self.n_features, accuracy_values, edgecolors='red')
@@ -124,4 +139,15 @@ class TrainingAndEvaluation:
         plt.xlabel('Number of features')
         plt.ylabel('Elapsed time in ms')
         plt.title('Number of features vs. Elapsed time')
+        plt.legend(loc="lower right")
+
+    def plot_c_parameter_sweep(self):
+        plt.figure()
+        plt.plot(self.c_parameters, self.c_parameter_sweep_results)
+        plt.scatter(self.c_parameters, self.c_parameter_sweep_results, edgecolors='red')
+        plt.xlim([self.c_parameters[0], self.c_parameters[-1]])
+        plt.ylim([0.0, 1.05])
+        plt.xlabel('C parameter of the SVM')
+        plt.ylabel('Accuracy')
+        plt.title('C parameter vs. Accuracy')
         plt.legend(loc="lower right")
