@@ -6,6 +6,7 @@ from scipy import sparse
 from random import shuffle
 import numpy as np
 import codecs
+import copy
 
 
 class ClassificationObject:
@@ -79,8 +80,8 @@ class Preprocessing:
                 training_indices = indices[0:int(np.ceil(indices.__len__() / 2))]
                 test_indices = indices[int(np.ceil(indices.__len__() / 2)):]
 
-            self.training_set = [self.classification_objects[i] for i in training_indices]
-            self.test_set = [self.classification_objects[i] for i in test_indices]
+            self.training_set = copy.deepcopy([self.classification_objects[i] for i in training_indices])
+            self.test_set = copy.deepcopy([self.classification_objects[i] for i in test_indices])
 
     def compute_tf(self, training):
         if training is True:
