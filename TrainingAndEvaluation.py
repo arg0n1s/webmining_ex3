@@ -3,6 +3,7 @@ from sklearn.metrics import precision_recall_curve
 from sklearn.preprocessing import label_binarize
 import matplotlib.pyplot as plt
 import numpy as np
+import time
 
 class TrainingAndEvaluation:
     def __init__(self, preprocessed_data):
@@ -15,6 +16,7 @@ class TrainingAndEvaluation:
         self.fn = 0
         self.accuracy = 0
         self.probabilities = []
+        self.accuracy_sweep_results = {}
         # Compute the class frequencies for the majority class classifier
         classes = {}
         for label in self.prep_data.training_labels:
@@ -80,5 +82,48 @@ class TrainingAndEvaluation:
         plt.xlabel('Recall')
         plt.ylabel('Precision')
         plt.title('Precision-Recall curve')
+        plt.legend(loc="lower right")
+        plt.show()
+
+    def sweep_number_of_features(self):
+        n_features = [5]
+        i = 5
+        while i * 2 <= self.prep_data.global_training_terms.__len__():
+            i *= 2
+            n_features.append(i)
+
+        for n in n_features:
+            self.prep_data.compute_top_n_reoccuring_terms(n)
+            self.prep_data.make_sparse(True)
+            self.prep_data.compute_tf(False)
+            self.prep_data.make_sparse(False)
+            t0 = time.time()
+            self.training()
+            t1 = time.time()
+            self.testing(False)
+            self.evaluate()
+            self.accuracy_sweep_results[n] = [self.accuracy, t1 - t0]
+
+    def plot_performance_analysis(self):
+        accuracy_values = list(map(lambda item: item[1][0], self.accuracy_sweep_results.items()))
+        elapsed_times = list(map(lambda item: item[1][1] * 1000.0, self.accuracy_sweep_results.items()))
+        plt.figure()
+        plt.plot(list(self.accuracy_sweep_results.keys()), accuracy_values)
+        plt.scatter(list(self.accuracy_sweep_results.keys()), accuracy_values, edgecolors='red')
+        plt.xlim([4, self.prep_data.global_training_terms.__len__()])
+        plt.ylim([0.0, 1.05])
+        plt.xlabel('Number of features')
+        plt.ylabel('Accuracy')
+        plt.title('Number of features vs. Accuracy')
+        plt.legend(loc="lower right")
+
+        plt.figure()
+        plt.plot(list(self.accuracy_sweep_results.keys()), elapsed_times)
+        plt.scatter(list(self.accuracy_sweep_results.keys()), elapsed_times, edgecolors='red')
+        plt.xlim([4, self.prep_data.global_training_terms.__len__()])
+        plt.ylim([0.0, 1000.0])
+        plt.xlabel('Number of features')
+        plt.ylabel('Elapsed time in ms')
+        plt.title('Number of features vs. Elapsed time')
         plt.legend(loc="lower right")
         plt.show()
