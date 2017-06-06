@@ -67,8 +67,8 @@ class Preprocessing:
             doc.token_list = list(map(lambda word: stemmer.stem(word), doc.token_list))
 
     def build_training_and_test_sets(self):
-        if self.classification_objects.__len__() < 230:
-            print("Error: The data set has to have more than 230 elements")
+        if self.classification_objects.__len__() < 240:
+            print("Error: The data set has to have more than 240 elements")
         else:
             indices = [i for i in range(self.classification_objects.__len__())]
             shuffle(indices)
