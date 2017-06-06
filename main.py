@@ -1,6 +1,7 @@
 import Preprocessing as Pre
 import TrainingAndEvaluation as Tr
 import time
+import matplotlib.pyplot as plt
 
 '''
 prep = Pre.Preprocessing()
@@ -42,3 +43,6 @@ training_and_eval.evaluate()
 print("Accuracy with the majority-class classifier: " + str(training_and_eval.accuracy) + '\n')
 training_and_eval.compute_probabilities()
 training_and_eval.compute_precision_recall_curve()
+training_and_eval.sweep_number_of_features()
+training_and_eval.plot_performance_analysis()
+plt.show()

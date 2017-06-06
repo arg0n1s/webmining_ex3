@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import time
 
+
 class TrainingAndEvaluation:
     def __init__(self, preprocessed_data):
         self.prep_data = preprocessed_data
@@ -17,6 +18,7 @@ class TrainingAndEvaluation:
         self.accuracy = 0
         self.probabilities = []
         self.accuracy_sweep_results = {}
+        self.n_features = []
         # Compute the class frequencies for the majority class classifier
         classes = {}
         for label in self.prep_data.training_labels:
@@ -69,13 +71,11 @@ class TrainingAndEvaluation:
         plt.clf()
         for i in range(2):
             classname = 'course' if i is 0 else 'non-course'
-            plt.plot(recall[i], precision[i],label='Precision-recall curve of class '+classname)
-            x_values = np.array(recall[i]);
+            plt.plot(recall[i], precision[i], label='Precision-recall curve of class ' + classname)
+            x_values = np.array(recall[i])
             y_values = np.array(precision[i])
             idx = np.argmin(np.abs(x_values - y_values)[1:])
-            plt.scatter(x_values[idx], y_values[idx], marker='o', label='Break-even point of class '+classname+' at {:.{prec}f}'.format(precision[i][idx],prec=3))
-
-
+            plt.scatter(x_values[idx], y_values[idx], marker='o', label='Break-even point of class ' + classname + ' at {:.{prec}f}'.format(precision[i][idx], prec=3))
 
         plt.xlim([0.0, 1.0])
         plt.ylim([0.0, 1.05])
@@ -83,16 +83,15 @@ class TrainingAndEvaluation:
         plt.ylabel('Precision')
         plt.title('Precision-Recall curve')
         plt.legend(loc="lower right")
-        plt.show()
 
     def sweep_number_of_features(self):
-        n_features = [5]
+        self.n_features = [5]
         i = 5
         while i * 2 <= self.prep_data.global_training_terms.__len__():
             i *= 2
-            n_features.append(i)
+            self.n_features.append(i)
 
-        for n in n_features:
+        for n in self.n_features:
             self.prep_data.compute_top_n_reoccuring_terms(n)
             self.prep_data.make_sparse(True)
             self.prep_data.compute_tf(False)
@@ -108,9 +107,9 @@ class TrainingAndEvaluation:
         accuracy_values = list(map(lambda item: item[1][0], self.accuracy_sweep_results.items()))
         elapsed_times = list(map(lambda item: item[1][1] * 1000.0, self.accuracy_sweep_results.items()))
         plt.figure()
-        plt.plot(list(self.accuracy_sweep_results.keys()), accuracy_values)
-        plt.scatter(list(self.accuracy_sweep_results.keys()), accuracy_values, edgecolors='red')
-        plt.xlim([4, self.prep_data.global_training_terms.__len__()])
+        plt.plot(self.n_features, accuracy_values)
+        plt.scatter(self.n_features, accuracy_values, edgecolors='red')
+        plt.xlim([4, self.n_features[-1]])
         plt.ylim([0.0, 1.05])
         plt.xlabel('Number of features')
         plt.ylabel('Accuracy')
@@ -118,12 +117,11 @@ class TrainingAndEvaluation:
         plt.legend(loc="lower right")
 
         plt.figure()
-        plt.plot(list(self.accuracy_sweep_results.keys()), elapsed_times)
-        plt.scatter(list(self.accuracy_sweep_results.keys()), elapsed_times, edgecolors='red')
-        plt.xlim([4, self.prep_data.global_training_terms.__len__()])
+        plt.plot(self.n_features, elapsed_times)
+        plt.scatter(self.n_features, elapsed_times, edgecolors='red')
+        plt.xlim([4, self.n_features[-1]])
         plt.ylim([0.0, 1000.0])
         plt.xlabel('Number of features')
         plt.ylabel('Elapsed time in ms')
         plt.title('Number of features vs. Elapsed time')
         plt.legend(loc="lower right")
-        plt.show()
