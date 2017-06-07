@@ -4,7 +4,7 @@ import time
 import matplotlib.pyplot as plt
 from scipy import sparse
 
-'''
+
 prep = Pre.Preprocessing()
 prep.load_files("course-cotrain-data/fulltext")
 prep.remove_script_tags()
@@ -22,7 +22,7 @@ prep.make_sparse(True)
 prep.compute_tf(False)
 prep.make_sparse(False)
 prep.safe_to_disk("pre-processed-data.pickle")
-'''
+
 prep = Pre.load_from_disk("pre-processed-data.pickle")
 
 # Save sparse representation of the training and test data
