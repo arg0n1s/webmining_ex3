@@ -2,6 +2,7 @@ import Preprocessing as Pre
 import TrainingAndEvaluation as Tr
 import time
 import matplotlib.pyplot as plt
+from scipy import sparse
 
 '''
 prep = Pre.Preprocessing()
@@ -23,6 +24,11 @@ prep.make_sparse(False)
 prep.safe_to_disk("pre-processed-data.pickle")
 '''
 prep = Pre.load_from_disk("pre-processed-data.pickle")
+
+# Save sparse representation of the training and test data
+sparse.save_npz("sparse-representation/sparse_training_data_n100.npz", prep.sparse_training_data)
+sparse.save_npz("sparse-representation/sparse_testing_data_n100.npz", prep.sparse_testing_data)
+
 training_and_eval = Tr.TrainingAndEvaluation(prep)
 t0 = time.time()
 training_and_eval.training()
